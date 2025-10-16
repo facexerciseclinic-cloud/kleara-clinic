@@ -306,7 +306,7 @@ const POS: React.FC = () => {
   };
 
   const updateQuantity = (id: number, change: number) => {
-    const service = sampleServices.find(s => s.id === id);
+    const service = services.find(s => s.id === id);
     setCart(cart.map(item => {
       if (item.id === id) {
         const newQuantity = item.quantity + change;
