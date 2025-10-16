@@ -1,0 +1,98 @@
+{
+  "name": "kleara-clinic-management",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Comprehensive Aesthetic Clinic Management System for Kleara Clinic",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "npm run dev --workspace=server",
+    "client": "npm start --workspace=client",
+    "build": "npm run build --workspace=client",
+    "start": "npm start --workspace=server",
+    "install-all": "npm install",
+    "test:server": "mocha --recursive server/test --exit"
+  },
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "keywords": [
+    "clinic",
+    "management",
+    "healthcare",
+    "aesthetic",
+    "CRM"
+  ],
+  "author": "Kleara Clinic Development Team",
+  "license": "MIT",
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@hookform/resolvers": "^5.2.2",
+    "@mui/icons-material": "^7.3.4",
+    "@mui/material": "^7.3.4",
+    "@mui/x-data-grid": "^8.13.1",
+    "@mui/x-date-pickers": "^8.12.0",
+    "@tanstack/react-query": "^5.90.2",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^13.5.0",
+    "@types/jest": "^27.5.2",
+    "@types/node": "^16.18.126",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.1",
+    "@types/react-router-dom": "^5.3.3",
+    "axios": "^1.12.2",
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.18",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^7.1.0",
+    "helmet": "^7.1.0",
+    "joi": "^17.11.0",
+    "jsonwebtoken": "^9.0.2",
+    "moment": "^2.30.1",
+    "mongoose": "^8.0.0",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "node-cron": "^3.0.2",
+    "nodemailer": "^6.9.7",
+    "notistack": "^3.0.2",
+    "pdf-lib": "^1.17.1",
+    "qrcode": "^1.5.3",
+    "react": "^19.2.0",
+    "react-big-calendar": "^1.19.4",
+    "react-dom": "^19.2.0",
+    "react-hook-form": "^7.64.0",
+    "react-router-dom": "^7.9.3",
+    "react-scripts": "5.0.1",
+    "recharts": "^3.2.1",
+    "socket.io": "^4.7.2",
+    "typescript": "^4.9.5",
+    "web-vitals": "^2.1.4",
+    "yup": "^1.7.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0",
+    "mocha": "^10.2.0",
+    "mongodb-memory-server": "^8.12.0",
+    "nodemon": "^3.0.1",
+    "supertest": "^6.3.3"
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: kleara-clinic-api
+    runtime: node
+    region: singapore
+    plan: free
+    buildCommand: npm install
+    startCommand: node app.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: MONGODB_URI
+        value: mongodb+srv://kleara_admin:Kleara2025!@kleara-clinic.khhfz8j.mongodb.net/kleara_clinic?retryWrites=true&w=majority&appName=kleara-clinic
+      - key: JWT_SECRET
+        value: kleara-clinic-secret-key-2025-production
+      - key: REFRESH_TOKEN_SECRET
+        value: kleara-refresh-token-secret-2025-production
+      - key: NODE_ENV
+        value: production
+      - key: FRONTEND_URL
+        value: https://client-six-tau-64.vercel.app
+      - key: PORT
+        value: 5002
+      - key: RATE_LIMIT_MAX
+        value: 100
+      - key: RATE_LIMIT_WINDOW
+        value: 15
