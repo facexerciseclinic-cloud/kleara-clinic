@@ -143,10 +143,12 @@ const Reports: React.FC = () => {
       
       // Fetch dashboard data
       const dashboardResponse = await api.get('/reports/dashboard');
-      const dashboardData = dashboardResponse.data.data;
+      const dashboardData = dashboardResponse.data?.data || dashboardResponse.data;
+      
+      console.log('Dashboard data:', dashboardData); // Debug log
       
       // Transform sales data from monthly revenue
-      if (dashboardData.monthlyRevenue) {
+      if (dashboardData?.monthlyRevenue && Array.isArray(dashboardData.monthlyRevenue)) {
         const transformed = dashboardData.monthlyRevenue.map((item: any) => ({
           month: new Date(item.month).toLocaleDateString('th-TH', { month: 'short' }),
           revenue: item.revenue || 0,
@@ -166,48 +168,80 @@ const Reports: React.FC = () => {
           const growth = ((transformed[transformed.length - 1].revenue - transformed[0].revenue) / transformed[0].revenue) * 100;
           setGrowthRate(growth);
         }
+      } else {
+        // Set default stats from quickStats if available
+        if (dashboardData?.quickStats) {
+          setTotalRevenue(dashboardData.quickStats.totalRevenue || 0);
+          setTotalTreatments(dashboardData.quickStats.totalTreatments || 0);
+        }
+        setSalesData([]);
       }
       
       // Fetch analytics data
-      const analyticsResponse = await api.get('/analytics/revenue');
-      if (analyticsResponse.data.topServices) {
-        const transformedTreatments = analyticsResponse.data.topServices.slice(0, 5).map((item: any) => ({
-          name: item.name || item.service,
-          count: item.count || 0,
-          revenue: item.revenue || 0,
-          growth: item.growthRate || 0,
-        }));
-        setTopTreatments(transformedTreatments);
+      try {
+        const analyticsResponse = await api.get('/analytics/revenue');
+        const analyticsData = analyticsResponse.data?.data || analyticsResponse.data;
+        
+        if (analyticsData?.topServices && Array.isArray(analyticsData.topServices)) {
+          const transformedTreatments = analyticsData.topServices.slice(0, 5).map((item: any) => ({
+            name: item.name || item.service,
+            count: item.count || 0,
+            revenue: item.revenue || 0,
+            growth: item.growthRate || 0,
+          }));
+          setTopTreatments(transformedTreatments);
+        }
+      } catch (err) {
+        console.warn('Analytics revenue endpoint not available:', err);
+        setTopTreatments([]);
       }
       
       // Fetch customer segments
-      const customerResponse = await api.get('/analytics/customer-retention');
-      if (customerResponse.data.segments) {
-        setCustomerSegments(customerResponse.data.segments);
+      try {
+        const customerResponse = await api.get('/analytics/customer-retention');
+        const customerData = customerResponse.data?.data || customerResponse.data;
+        
+        if (customerData?.segments && Array.isArray(customerData.segments)) {
+          setCustomerSegments(customerData.segments);
+        }
+      } catch (err) {
+        console.warn('Customer retention endpoint not available:', err);
+        setCustomerSegments([]);
       }
       
       // Fetch inventory alerts
-      const inventoryResponse = await api.get('/inventory/alerts');
-      if (inventoryResponse.data.data) {
-        const transformedAlerts = inventoryResponse.data.data.map((item: any) => ({
-          item: item.name,
-          stock: item.quantity?.onHand || 0,
-          reorder: item.quantity?.reorderPoint || 0,
-          status: item.quantity?.onHand <= item.quantity?.reorderPoint * 0.5 ? 'critical' : 
-                  item.quantity?.onHand <= item.quantity?.reorderPoint ? 'low' : 'ok',
-        }));
-        setInventoryAlerts(transformedAlerts);
+      try {
+        const inventoryResponse = await api.get('/inventory/alerts');
+        const inventoryData = inventoryResponse.data?.data || inventoryResponse.data;
+        
+        if (Array.isArray(inventoryData)) {
+          const transformedAlerts = inventoryData.map((item: any) => ({
+            item: item.name,
+            stock: item.quantity?.onHand || 0,
+            reorder: item.quantity?.reorderPoint || 0,
+            status: item.quantity?.onHand <= (item.quantity?.reorderPoint || 0) * 0.5 ? 'critical' : 
+                    item.quantity?.onHand <= (item.quantity?.reorderPoint || 0) ? 'low' : 'ok',
+          }));
+          setInventoryAlerts(transformedAlerts);
+        }
+      } catch (err) {
+        console.warn('Inventory alerts endpoint not available:', err);
+        setInventoryAlerts([]);
       }
       
     } catch (error: any) {
       console.error('Failed to fetch reports data:', error);
-      showNotification('ไม่สามารถโหลดข้อมูลรายงานได้', 'error');
+      showNotification('ไม่สามารถโหลดข้อมูลรายงานได้ กรุณาลองใหม่อีกครั้ง', 'error');
       
       // Set empty data on error
       setSalesData([]);
       setTopTreatments([]);
       setCustomerSegments([]);
       setInventoryAlerts([]);
+      setTotalRevenue(0);
+      setTotalTreatments(0);
+      setAvgRevenue(0);
+      setGrowthRate(0);
     } finally {
       setLoading(false);
     }
