@@ -203,6 +203,14 @@ router.get('/hn/:hn', auth, checkPermission('patients', 'read'), async (req, res
   }
 });
 
+// Helper function to generate unique HN
+const generateHN = async () => {
+  const year = new Date().getFullYear().toString().slice(-2);
+  const count = await Patient.countDocuments();
+  const hn = `HN${year}${(count + 1).toString().padStart(5, '0')}`;
+  return hn;
+};
+
 // @route   POST /api/patients
 // @desc    Create new patient
 // @access  Private
@@ -217,12 +225,19 @@ router.post('/', auth, checkPermission('patients', 'write'), async (req, res) =>
       });
     }
 
+    // Generate HN if not provided
+    if (!req.body.hn) {
+      req.body.hn = await generateHN();
+    }
+
     // Add PDPA consent metadata
     req.body.pdpaConsent.consentDate = new Date();
     req.body.pdpaConsent.ipAddress = req.ip;
 
-    // Set registration info
-    req.body.registeredBy = req.user._id;
+    // Set registration info (use actual user ID from auth token)
+    if (req.user && req.user._id) {
+      req.body.registeredBy = req.user._id;
+    }
 
     const patient = new Patient(req.body);
     await patient.save();
