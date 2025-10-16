@@ -1,9 +1,11 @@
 services:
+  # Backend API Server
   - type: web
     name: kleara-clinic-api
     runtime: node
     region: singapore
     plan: free
+    rootDir: server
     buildCommand: npm install
     startCommand: node app.js
     healthCheckPath: /api/health
@@ -17,10 +19,23 @@ services:
       - key: NODE_ENV
         value: production
       - key: FRONTEND_URL
-        value: https://client-six-tau-64.vercel.app
+        value: https://kleara-clinic-client.onrender.com
       - key: PORT
         value: 5002
       - key: RATE_LIMIT_MAX
         value: 100
       - key: RATE_LIMIT_WINDOW
         value: 15
+
+  # Frontend React App
+  - type: web
+    name: kleara-clinic-client
+    runtime: static
+    region: singapore
+    plan: free
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: build
+    envVars:
+      - key: REACT_APP_API_URL
+        value: https://kleara-clinic-api.onrender.com/api
