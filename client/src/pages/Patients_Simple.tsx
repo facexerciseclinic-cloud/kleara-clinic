@@ -156,33 +156,45 @@ const Patients: React.FC = () => {
     setLoading(true);
     try {
       const response = await api.get('/patients');
+      console.log('Patients API response:', response.data); // Debug log
+      
       if (response.data.success) {
-        const transformedPatients = response.data.data.map((p: any) => ({
-          id: p._id,
-          hn: p.hn,
-          name: `${p.profile.firstName} ${p.profile.lastName}`,
-          nickname: p.profile.nickname,
-          age: calculateAge(p.profile.dateOfBirth),
-          gender: p.profile.gender === 'male' ? 'ชาย' : 'หญิง',
-          phone: p.contact.phone,
-          email: p.contact.email,
-          address: p.contact.address?.current?.street || '',
-          birthDate: p.profile.dateOfBirth,
-          occupation: p.profile.occupation,
-          membership: p.membershipInfo.level,
-          lastVisit: p.lastVisit ? new Date(p.lastVisit).toLocaleDateString() : 'N/A',
-          totalSpending: p.financials.totalSpending,
-          loyaltyPoints: p.loyaltyPoints || 0,
-        }));
-        setPatients(transformedPatients);
+        const patientsData = response.data.data || response.data.patients || [];
+        
+        if (Array.isArray(patientsData)) {
+          const transformedPatients = patientsData.map((p: any) => ({
+            id: p._id,
+            hn: p.hn,
+            name: `${p.profile.firstName} ${p.profile.lastName}`,
+            nickname: p.profile.nickname,
+            age: calculateAge(p.profile.dateOfBirth),
+            gender: p.profile.gender === 'male' ? 'ชาย' : 'หญิง',
+            phone: p.contact.phone,
+            email: p.contact.email,
+            address: p.contact.address?.current?.street || '',
+            birthDate: p.profile.dateOfBirth,
+            occupation: p.profile.occupation,
+            membership: p.membershipInfo.level,
+            lastVisit: p.lastVisit ? new Date(p.lastVisit).toLocaleDateString() : 'N/A',
+            totalSpending: p.financials.totalSpending,
+            loyaltyPoints: p.loyaltyPoints || 0,
+          }));
+          setPatients(transformedPatients);
+        } else {
+          console.warn('Patients data is not an array:', patientsData);
+          setPatients([]);
+          showNotification('ไม่พบข้อมูลผู้ป่วย', 'warning');
+        }
       } else {
         setError('Failed to fetch patients');
         showNotification('ไม่สามารถโหลดข้อมูลผู้ป่วยได้', 'error');
+        setPatients([]);
       }
     } catch (err) {
       setError('An error occurred while fetching patients');
       showNotification('เกิดข้อผิดพลาดในการโหลดข้อมูลผู้ป่วย', 'error');
-      console.error(err);
+      console.error('Fetch patients error:', err);
+      setPatients([]);
     } finally {
       setLoading(false);
     }
