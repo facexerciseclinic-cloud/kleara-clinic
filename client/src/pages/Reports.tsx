@@ -1,5 +1,5 @@
 // React Core
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 // Material-UI Components
 import {
@@ -25,7 +25,14 @@ import {
   Chip,
   IconButton,
   Paper,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
+
+// Services & Contexts
+import { api } from '../services/api';
+import { useNotifications } from '../contexts/NotificationContext';
+import { LoadingState, EmptyState } from '../components/common/States';
 
 // Components
 import GridItem from '../components/common/GridItem';
@@ -104,48 +111,115 @@ function TabPanel(props: TabPanelProps): React.ReactElement | null {
   );
 }
 
-// Sample data for demonstrations
-const salesData: SalesData[] = [
-  { month: 'ม.ค.', revenue: 450000, treatments: 85, packages: 12 },
-  { month: 'ก.พ.', revenue: 520000, treatments: 92, packages: 15 },
-  { month: 'มี.ค.', revenue: 480000, treatments: 88, packages: 11 },
-  { month: 'เม.ย.', revenue: 650000, treatments: 105, packages: 18 },
-  { month: 'พ.ค.', revenue: 590000, treatments: 98, packages: 16 },
-  { month: 'มิ.ย.', revenue: 720000, treatments: 115, packages: 22 },
-];
-
-const topTreatments: TopTreatment[] = [
-  { name: 'Botox หน้าผาก', count: 145, revenue: 725000, growth: 12 },
-  { name: 'Filler ใต้ตา', count: 98, revenue: 490000, growth: 8 },
-  { name: 'Laser Hair Removal', count: 75, revenue: 225000, growth: -3 },
-  { name: 'HydraFacial', count: 120, revenue: 360000, growth: 15 },
-  { name: 'Chemical Peel', count: 65, revenue: 195000, growth: 5 },
-];
-
-const customerSegments: CustomerSegment[] = [
-  { segment: 'ลูกค้าใหม่', count: 156, percentage: 35, revenue: 780000 },
-  { segment: 'ลูกค้าเก่า', count: 289, percentage: 65, revenue: 1450000 },
-  { segment: 'VIP Member', count: 45, percentage: 10, revenue: 675000 },
-  { segment: 'Package Member', count: 67, percentage: 15, revenue: 535000 },
-];
-
-const inventoryAlerts: InventoryAlert[] = [
-  { item: 'Botox 100 Units', stock: 5, reorder: 20, status: 'critical' },
-  { item: 'Hyaluronic Filler', stock: 12, reorder: 15, status: 'low' },
-  { item: 'Vitamin C Serum', stock: 8, reorder: 25, status: 'critical' },
-  { item: 'Sunscreen SPF 50', stock: 25, reorder: 30, status: 'ok' },
-  { item: 'Cleansing Foam', stock: 18, reorder: 20, status: 'low' },
-];
-
 const Reports: React.FC = () => {
+  const { showNotification } = useNotifications();
+  
+  // UI State
   const [tabValue, setTabValue] = useState(0);
   const [dateRange, setDateRange] = useState('thisMonth');
   const [reportType, setReportType] = useState('summary');
+  const [loading, setLoading] = useState(true);
+  
+  // Data State
+  const [salesData, setSalesData] = useState<SalesData[]>([]);
+  const [topTreatments, setTopTreatments] = useState<TopTreatment[]>([]);
+  const [customerSegments, setCustomerSegments] = useState<CustomerSegment[]>([]);
+  const [inventoryAlerts, setInventoryAlerts] = useState<InventoryAlert[]>([]);
+  
+  // Summary Stats
+  const [totalRevenue, setTotalRevenue] = useState(0);
+  const [totalTreatments, setTotalTreatments] = useState(0);
+  const [avgRevenue, setAvgRevenue] = useState(0);
+  const [growthRate, setGrowthRate] = useState(0);
 
-  const totalRevenue = salesData.reduce((sum, item) => sum + item.revenue, 0);
-  const totalTreatments = salesData.reduce((sum, item) => sum + item.treatments, 0);
-  const avgRevenue = totalRevenue / salesData.length;
-  const growthRate = ((salesData[salesData.length - 1].revenue - salesData[0].revenue) / salesData[0].revenue) * 100;
+  // Fetch data on mount and when dateRange changes
+  useEffect(() => {
+    fetchReportsData();
+  }, [dateRange]);
+
+  const fetchReportsData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch dashboard data
+      const dashboardResponse = await api.get('/reports/dashboard');
+      const dashboardData = dashboardResponse.data.data;
+      
+      // Transform sales data from monthly revenue
+      if (dashboardData.monthlyRevenue) {
+        const transformed = dashboardData.monthlyRevenue.map((item: any) => ({
+          month: new Date(item.month).toLocaleDateString('th-TH', { month: 'short' }),
+          revenue: item.revenue || 0,
+          treatments: item.treatments || 0,
+          packages: item.packages || 0,
+        }));
+        setSalesData(transformed);
+        
+        // Calculate stats
+        const total = transformed.reduce((sum: number, item: any) => sum + item.revenue, 0);
+        const totalTx = transformed.reduce((sum: number, item: any) => sum + item.treatments, 0);
+        setTotalRevenue(total);
+        setTotalTreatments(totalTx);
+        setAvgRevenue(transformed.length > 0 ? total / transformed.length : 0);
+        
+        if (transformed.length >= 2) {
+          const growth = ((transformed[transformed.length - 1].revenue - transformed[0].revenue) / transformed[0].revenue) * 100;
+          setGrowthRate(growth);
+        }
+      }
+      
+      // Fetch analytics data
+      const analyticsResponse = await api.get('/analytics/revenue');
+      if (analyticsResponse.data.topServices) {
+        const transformedTreatments = analyticsResponse.data.topServices.slice(0, 5).map((item: any) => ({
+          name: item.name || item.service,
+          count: item.count || 0,
+          revenue: item.revenue || 0,
+          growth: item.growthRate || 0,
+        }));
+        setTopTreatments(transformedTreatments);
+      }
+      
+      // Fetch customer segments
+      const customerResponse = await api.get('/analytics/customer-retention');
+      if (customerResponse.data.segments) {
+        setCustomerSegments(customerResponse.data.segments);
+      }
+      
+      // Fetch inventory alerts
+      const inventoryResponse = await api.get('/inventory/alerts');
+      if (inventoryResponse.data.data) {
+        const transformedAlerts = inventoryResponse.data.data.map((item: any) => ({
+          item: item.name,
+          stock: item.quantity?.onHand || 0,
+          reorder: item.quantity?.reorderPoint || 0,
+          status: item.quantity?.onHand <= item.quantity?.reorderPoint * 0.5 ? 'critical' : 
+                  item.quantity?.onHand <= item.quantity?.reorderPoint ? 'low' : 'ok',
+        }));
+        setInventoryAlerts(transformedAlerts);
+      }
+      
+    } catch (error: any) {
+      console.error('Failed to fetch reports data:', error);
+      showNotification('ไม่สามารถโหลดข้อมูลรายงานได้', 'error');
+      
+      // Set empty data on error
+      setSalesData([]);
+      setTopTreatments([]);
+      setCustomerSegments([]);
+      setInventoryAlerts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = () => {
+    fetchReportsData();
+  };
+
+  if (loading) {
+    return <LoadingState message="กำลังโหลดข้อมูลรายงาน..." />;
+  }
 
   return (
     <Box sx={{ p: 3 }}>
@@ -169,7 +243,7 @@ const Reports: React.FC = () => {
               <MenuItem value="custom">กำหนดเอง</MenuItem>
             </Select>
           </FormControl>
-          <Button variant="outlined" startIcon={<Refresh />}>
+          <Button variant="outlined" startIcon={<Refresh />} onClick={handleRefresh}>
             รีเฟรช
           </Button>
           <Button variant="contained" startIcon={<Download />}>
