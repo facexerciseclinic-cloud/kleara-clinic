@@ -1,0 +1,11 @@
+# Render Static Site Configuration
+# This file is not strictly necessary as Render can detect React apps
+# But keeping it for reference
+
+buildCommand: npm install && npm run build
+publishDir: build
+staticHeaders:
+  /*:
+    X-Frame-Options: DENY
+    X-Content-Type-Options: nosniff
+    X-XSS-Protection: 1; mode=block

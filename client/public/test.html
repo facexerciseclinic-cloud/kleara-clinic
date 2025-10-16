@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kleara Clinic - Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 2rem;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            text-align: center;
+            max-width: 600px;
+        }
+        .success {
+            background: rgba(255,255,255,0.1);
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+        .title {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 1rem;
+        }
+        .subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .status {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #4caf50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title">🏥 Kleara Clinic Management</h1>
+        <h2 class="subtitle">ระบบจัดการคลินิกความงาม</h2>
+        
+        <div class="success">
+            <div class="status">✅ Static HTML ทำงานได้!</div>
+            <p>ไฟล์นี้โหลดโดยไม่ผ่าน React</p>
+            <p>หากเห็นหน้านี้แสดงว่าเซิร์ฟเวอร์ทำงานปกติ</p>
+        </div>
+        
+        <p>เวลา: <span id="time"></span></p>
+    </div>
+    
+    <script>
+        // Simple JavaScript test
+        function updateTime() {
+            document.getElementById('time').textContent = new Date().toLocaleString('th-TH');
+        }
+        updateTime();
+        setInterval(updateTime, 1000);
+    </script>
+</body>
+</html>
