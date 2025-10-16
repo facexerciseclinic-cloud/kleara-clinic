@@ -22,6 +22,11 @@ import {
   Divider,
   Container,
   CircularProgress,
+  Autocomplete,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import {
   Add,
@@ -58,10 +63,48 @@ const Treatments: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // States for new treatment form
+  const [patients, setPatients] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+  const [selectedService, setSelectedService] = useState<any>(null);
+  const [treatmentDate, setTreatmentDate] = useState('');
+  const [treatmentTime, setTreatmentTime] = useState('');
+  const [notes, setNotes] = useState('');
+  const [saving, setSaving] = useState(false);
+
   // Fetch treatments from API
   useEffect(() => {
     fetchTreatments();
+    fetchPatients();
+    fetchServices();
   }, []);
+
+  const fetchPatients = async () => {
+    try {
+      const response = await api.get('/patients');
+      if (response.data.success) {
+        const patientsData = response.data.data?.patients || response.data.data || [];
+        setPatients(patientsData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch patients:', error);
+    }
+  };
+
+  const fetchServices = async () => {
+    try {
+      const response = await api.get('/services');
+      if (response.data.success) {
+        const servicesData = response.data.data || [];
+        // Filter only treatment services
+        const treatmentServices = servicesData.filter((s: any) => s.category === 'treatment' || s.type === 'service');
+        setServices(treatmentServices);
+      }
+    } catch (error) {
+      console.error('Failed to fetch services:', error);
+    }
+  };
 
   const fetchTreatments = async () => {
     try {
@@ -105,6 +148,49 @@ const Treatments: React.FC = () => {
       setTreatments([]); // Set empty array on error
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveTreatment = async () => {
+    if (!selectedPatient || !selectedService || !treatmentDate || !treatmentTime) {
+      showNotification('กรุณากรอกข้อมูลให้ครบถ้วน', 'error');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const treatmentData = {
+        patient: selectedPatient._id,
+        treatmentType: selectedService.name,
+        service: selectedService._id,
+        treatmentDate: new Date(`${treatmentDate}T${treatmentTime}`).toISOString(),
+        status: 'scheduled',
+        notes: notes,
+        charges: {
+          total: selectedService.price || 0
+        }
+      };
+
+      const response = await api.post('/treatments', treatmentData);
+      
+      if (response.data.success) {
+        showNotification('บันทึกการรักษาสำเร็จ', 'success');
+        // Reset form
+        setSelectedPatient(null);
+        setSelectedService(null);
+        setTreatmentDate('');
+        setTreatmentTime('');
+        setNotes('');
+        // Refresh list
+        fetchTreatments();
+        // Switch to list tab
+        setActiveTab(0);
+      }
+    } catch (error: any) {
+      console.error('Failed to save treatment:', error);
+      showNotification(error.response?.data?.message || 'ไม่สามารถบันทึกข้อมูลได้', 'error');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -281,42 +367,78 @@ const Treatments: React.FC = () => {
           <CardContent>
             <Typography variant="h6" sx={{ mb: 3 }}>เพิ่มการรักษาใหม่</Typography>
             <Stack spacing={3}>
-              <Stack direction="row" spacing={2}>
-                <TextField
-                  fullWidth
-                  label="HN ผู้ป่วย"
-                  placeholder="ระบุ HN ผู้ป่วย"
-                />
-                <TextField
-                  fullWidth
-                  label="บริการ"
-                  placeholder="เลือกบริการ"
-                />
-              </Stack>
+              <Autocomplete
+                options={patients}
+                getOptionLabel={(option) => `${option.profile?.firstName || ''} ${option.profile?.lastName || ''} (HN: ${option.hn || 'N/A'})`.trim()}
+                value={selectedPatient}
+                onChange={(_event, newValue) => setSelectedPatient(newValue)}
+                renderInput={(params) => (
+                  <TextField {...params} label="เลือกผู้ป่วย" placeholder="ค้นหาด้วยชื่อหรือ HN" />
+                )}
+                loading={patients.length === 0}
+              />
+              
+              <Autocomplete
+                options={services}
+                getOptionLabel={(option) => `${option.name} - ${option.price?.toLocaleString() || 0} บาท`}
+                value={selectedService}
+                onChange={(_event, newValue) => setSelectedService(newValue)}
+                renderInput={(params) => (
+                  <TextField {...params} label="เลือกบริการ" placeholder="ค้นหาบริการ" />
+                )}
+                loading={services.length === 0}
+              />
+
               <Stack direction="row" spacing={2}>
                 <TextField
                   fullWidth
                   label="วันที่"
                   type="date"
+                  value={treatmentDate}
+                  onChange={(e) => setTreatmentDate(e.target.value)}
                   InputLabelProps={{ shrink: true }}
                 />
                 <TextField
                   fullWidth
                   label="เวลา"
                   type="time"
+                  value={treatmentTime}
+                  onChange={(e) => setTreatmentTime(e.target.value)}
                   InputLabelProps={{ shrink: true }}
                 />
               </Stack>
+              
               <TextField
                 fullWidth
                 label="หมายเหตุ"
                 multiline
                 rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
                 placeholder="บันทึกเพิ่มเติม"
               />
+              
               <Stack direction="row" spacing={2} justifyContent="flex-end">
-                <Button variant="outlined">ยกเลิก</Button>
-                <Button variant="contained">บันทึก</Button>
+                <Button 
+                  variant="outlined"
+                  onClick={() => {
+                    setSelectedPatient(null);
+                    setSelectedService(null);
+                    setTreatmentDate('');
+                    setTreatmentTime('');
+                    setNotes('');
+                  }}
+                  disabled={saving}
+                >
+                  ยกเลิก
+                </Button>
+                <Button 
+                  variant="contained"
+                  onClick={handleSaveTreatment}
+                  disabled={saving || !selectedPatient || !selectedService}
+                >
+                  {saving ? <CircularProgress size={24} /> : 'บันทึก'}
+                </Button>
               </Stack>
             </Stack>
           </CardContent>

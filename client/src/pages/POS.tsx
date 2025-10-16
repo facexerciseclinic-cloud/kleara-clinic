@@ -48,6 +48,7 @@ import {
   TableHead,
   TableRow,
   LinearProgress,
+  Autocomplete,
 } from '@mui/material';
 
 // Material-UI Icons
@@ -170,6 +171,10 @@ const POS: React.FC = () => {
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // State for patients
+  const [patients, setPatients] = useState<any[]>([]);
+  const [selectedPatient, setSelectedPatient] = useState<any>(null);
+  
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -202,7 +207,20 @@ const POS: React.FC = () => {
   // Fetch services/products from API
   useEffect(() => {
     fetchServices();
+    fetchPatients();
   }, []);
+
+  const fetchPatients = async () => {
+    try {
+      const response = await api.get('/patients');
+      if (response.data.success) {
+        const patientsData = response.data.data?.patients || response.data.data || [];
+        setPatients(patientsData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch patients:', error);
+    }
+  };
 
   const fetchServices = async () => {
     try {
@@ -226,6 +244,19 @@ const POS: React.FC = () => {
   const showSnackbar = (message: string): void => {
     setSnackbarMessage(message);
     setSnackbarOpen(true);
+  };
+
+  const handleSelectPatient = (patient: any) => {
+    setSelectedPatient(patient);
+    setCustomer({
+      name: `${patient.profile?.firstName || ''} ${patient.profile?.lastName || ''}`.trim(),
+      phone: patient.profile?.contact?.phone || patient.contact?.phone || '',
+      email: patient.profile?.contact?.email || patient.contact?.email || '',
+      loyaltyPoints: patient.loyaltyPoints || 0,
+      totalSpending: patient.financials?.totalSpending || 0,
+      tier: patient.membershipInfo?.level || 'Bronze'
+    });
+    showSnackbar(`เลือกผู้ป่วย: ${patient.profile?.firstName} ${patient.profile?.lastName}`);
   };
 
   const openDialog = (type: 'payment' | 'discount' | 'receipt' | 'customer' | 'history'): void => {
@@ -588,12 +619,44 @@ const POS: React.FC = () => {
                 </Button>
               </Box>
               <Stack spacing={2}>
+                <Autocomplete
+                  options={patients}
+                  getOptionLabel={(option) => `${option.profile?.firstName || ''} ${option.profile?.lastName || ''} (HN: ${option.hn})`.trim()}
+                  value={selectedPatient}
+                  onChange={(_event, newValue) => {
+                    if (newValue) {
+                      handleSelectPatient(newValue);
+                    } else {
+                      setSelectedPatient(null);
+                      setCustomer({
+                        name: '',
+                        phone: '',
+                        email: '',
+                        loyaltyPoints: 0,
+                        totalSpending: 0,
+                        tier: 'Bronze'
+                      });
+                    }
+                  }}
+                  renderInput={(params) => (
+                    <TextField 
+                      {...params} 
+                      label="เลือกผู้ป่วย" 
+                      placeholder="ค้นหาด้วยชื่อหรือ HN"
+                      size="small"
+                    />
+                  )}
+                  loading={patients.length === 0}
+                  isOptionEqualToValue={(option, value) => option._id === value._id}
+                />
+                
                 <TextField
                   fullWidth
                   label="ชื่อลูกค้า"
                   value={customer.name}
                   onChange={(e) => setCustomer({...customer, name: e.target.value})}
                   size="small"
+                  disabled={!!selectedPatient}
                 />
                 <TextField
                   fullWidth
@@ -601,6 +664,7 @@ const POS: React.FC = () => {
                   value={customer.phone}
                   onChange={(e) => setCustomer({...customer, phone: e.target.value})}
                   size="small"
+                  disabled={!!selectedPatient}
                 />
                 {customer.loyaltyPoints > 0 && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
