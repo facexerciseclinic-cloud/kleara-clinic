@@ -40,7 +40,7 @@ router.post('/login', async (req, res) => {
 // @route   POST api/portal/register
 // @desc    Register a patient for portal access
 // @access  Private (Staff/Admin can do this)
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 router.post('/register', auth, async (req, res) => {
     const { patientId, password } = req.body;
     try {

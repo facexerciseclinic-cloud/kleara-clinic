@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Patient = require('../models/Patient');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 // @route   GET api/loyalty/points/:patientId
 // @desc    Get loyalty points for a patient

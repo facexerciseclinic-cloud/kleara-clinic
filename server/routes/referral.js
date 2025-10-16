@@ -3,7 +3,7 @@ const router = express.Router();
 const Referral = require('../models/Referral');
 const Patient = require('../models/Patient');
 const Setting = require('../models/Setting');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 // Generate a unique referral code
 const generateReferralCode = () => {

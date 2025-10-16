@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Setting = require('../models/Setting');
-const auth = require('../middleware/auth');
+const { auth } = require('../middleware/auth');
 
 // @route   GET api/settings
 // @desc    Get all settings
