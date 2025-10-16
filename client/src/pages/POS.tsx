@@ -1,5 +1,6 @@
 // React Core
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import api from '../services/api';
 
 // Components
 import GridItem from '../components/common/GridItem';
@@ -138,87 +139,6 @@ interface LoyaltyTier {
   points: number;
 }
 
-// Sample Data
-const sampleServices: ServiceItem[] = [
-  {
-    id: 1,
-    name: 'Botox Treatment',
-    price: 8000,
-    category: 'treatment',
-    description: 'การรักษาด้วย Botox สำหรับลดริ้วรอย',
-    commission: 15, // 15% commission
-    stock: null, // Services don't have stock
-    barcode: 'TR001',
-    duration: 60, // minutes
-  },
-  {
-    id: 2,
-    name: 'Facial Treatment',
-    price: 2500,
-    category: 'treatment',
-    description: 'ทรีทเมนต์ดูแลผิวหน้า',
-    commission: 12,
-    stock: null,
-    barcode: 'TR002',
-    duration: 90,
-  },
-  {
-    id: 3,
-    name: 'Laser Hair Removal',
-    price: 1500,
-    category: 'treatment',
-    description: 'กำจัดขนด้วยเลเซอร์',
-    commission: 10,
-    stock: null,
-    barcode: 'TR003',
-    duration: 45,
-  },
-  {
-    id: 4,
-    name: 'Sunscreen SPF 50',
-    price: 1200,
-    category: 'product',
-    description: 'ครีมกันแดด SPF 50',
-    commission: 25,
-    stock: 48,
-    barcode: 'PR001',
-    duration: null,
-  },
-  {
-    id: 5,
-    name: 'Vitamin C Serum',
-    price: 2800,
-    category: 'product',
-    description: 'เซรั่มวิตามิน C',
-    commission: 30,
-    stock: 23,
-    barcode: 'PR002',
-    duration: null,
-  },
-  {
-    id: 6,
-    name: 'Moisturizer',
-    price: 1800,
-    category: 'product',
-    description: 'ครีมบำรุงผิว',
-    commission: 20,
-    stock: 35,
-    barcode: 'PR003',
-    duration: null,
-  },
-  {
-    id: 7,
-    name: 'Consultation',
-    price: 500,
-    category: 'consultation',
-    description: 'การปรึกษาแพทย์',
-    commission: 0,
-    stock: null,
-    barcode: 'CS001',
-    duration: 30,
-  },
-];
-
 // Discount and promotion data
 const discountTypes: DiscountType[] = [
   { id: 'regular', name: 'ลูกค้าประจำ', type: 'percentage', value: 10, minAmount: 0 },
@@ -246,6 +166,10 @@ const loyaltyTiers: LoyaltyTier[] = [
 
 // Main POS Component
 const POS: React.FC = () => {
+  // State for services/products
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -275,6 +199,30 @@ const POS: React.FC = () => {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [salesHistory, setSalesHistory] = useState<any[]>([]);
 
+  // Fetch services/products from API
+  useEffect(() => {
+    fetchServices();
+  }, []);
+
+  const fetchServices = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/services');
+      console.log('Services API response:', response.data);
+      
+      if (response.data.success) {
+        const servicesData = response.data.data || [];
+        setServices(servicesData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch services:', error);
+      showSnackbar('ไม่สามารถโหลดรายการสินค้าและบริการได้');
+      setServices([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const showSnackbar = (message: string): void => {
     setSnackbarMessage(message);
     setSnackbarOpen(true);
@@ -293,7 +241,7 @@ const POS: React.FC = () => {
     setLoyaltyPointsUsed(0);
   };
 
-  const filteredServices = sampleServices.filter(service => {
+  const filteredServices = services.filter(service => {
     const matchesSearch = service.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'all' || service.category === categoryFilter;
     return matchesSearch && matchesCategory;

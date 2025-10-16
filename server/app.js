@@ -88,6 +88,7 @@ app.use('/api/inventory', require('./routes/inventory'));
 app.use('/api/staff', require('./routes/staff'));
 app.use('/api/reports', require('./routes/reports'));
 app.use('/api/integrations', require('./routes/integrations'));
+app.use('/api/services', require('./routes/services')); // POS services/products
 
 // New modern features
 app.use('/api/line', require('./routes/line'));
