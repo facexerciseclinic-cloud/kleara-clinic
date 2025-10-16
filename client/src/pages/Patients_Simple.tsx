@@ -262,6 +262,12 @@ const Patients: React.FC = () => {
 
   const handleAddPatient = async () => {
     try {
+      // Validate required fields
+      if (!formData.name || !formData.phone || !formData.birthDate) {
+        showNotification('กรุณากรอกข้อมูลที่จำเป็น: ชื่อ-นามสกุล, เบอร์โทรศัพท์, และวันเกิด', 'error');
+        return;
+      }
+
       // Prepare data for backend
       const patientData: any = {
         profile: {
@@ -270,7 +276,6 @@ const Patients: React.FC = () => {
           nickname: formData.nickname || '',
           dateOfBirth: formData.birthDate || new Date().toISOString(),
           gender: formData.gender === 'ชาย' ? 'male' : 'female',
-          occupation: formData.occupation || '',
           contact: {
             phone: formData.phone || '000-000-0000',
             email: formData.email || '',
@@ -291,10 +296,17 @@ const Patients: React.FC = () => {
         },
       };
 
+      // Only add occupation if it has a value
+      if (formData.occupation && formData.occupation.trim() !== '') {
+        patientData.profile.occupation = formData.occupation.trim();
+      }
+
       // Add referral code if validated
       if (referralValidated && referralCode) {
         patientData.referredBy = referralCode;
       }
+
+      console.log('Submitting patient data:', patientData); // Debug log
 
       const response = await api.post('/patients', patientData);
       
