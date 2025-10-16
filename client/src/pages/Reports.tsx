@@ -215,13 +215,24 @@ const Reports: React.FC = () => {
         const inventoryData = inventoryResponse.data?.data || inventoryResponse.data;
         
         if (Array.isArray(inventoryData)) {
-          const transformedAlerts = inventoryData.map((item: any) => ({
-            item: item.name,
-            stock: item.quantity?.onHand || 0,
-            reorder: item.quantity?.reorderPoint || 0,
-            status: item.quantity?.onHand <= (item.quantity?.reorderPoint || 0) * 0.5 ? 'critical' : 
-                    item.quantity?.onHand <= (item.quantity?.reorderPoint || 0) ? 'low' : 'ok',
-          }));
+          const transformedAlerts = inventoryData.map((item: any) => {
+            const onHand = item.quantity?.onHand || 0;
+            const reorderPoint = item.quantity?.reorderPoint || 0;
+            let status: 'low' | 'critical' | 'ok' = 'ok';
+            
+            if (onHand <= reorderPoint * 0.5) {
+              status = 'critical';
+            } else if (onHand <= reorderPoint) {
+              status = 'low';
+            }
+            
+            return {
+              item: item.name,
+              stock: onHand,
+              reorder: reorderPoint,
+              status: status,
+            };
+          });
           setInventoryAlerts(transformedAlerts);
         }
       } catch (err) {
