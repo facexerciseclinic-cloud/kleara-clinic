@@ -11,22 +11,46 @@ const patientSchema = Joi.object({
     titleEn: Joi.string().optional(),
     firstName: Joi.string().required(),
     lastName: Joi.string().required(),
-    nickname: Joi.string().optional(),
+    nickname: Joi.string().allow('').optional(),
     gender: Joi.string().valid('male', 'female', 'other').required(),
     dateOfBirth: Joi.date().required(),
     idCard: Joi.string().optional(),
     nationality: Joi.string().default('Thai'),
+    occupation: Joi.string().allow('').optional(),
     contact: Joi.object({
       phone: Joi.string().required(),
-      email: Joi.string().email().optional(),
+      email: Joi.string().email().allow('').optional(),
       lineId: Joi.string().optional(),
       emergencyContact: Joi.object({
         name: Joi.string().optional(),
         relationship: Joi.string().optional(),
         phone: Joi.string().optional()
       }).optional()
-    }).required()
+    }).required(),
+    address: Joi.object({
+      current: Joi.object({
+        houseNumber: Joi.string().optional(),
+        street: Joi.string().allow('').optional(),
+        subDistrict: Joi.string().optional(),
+        district: Joi.string().optional(),
+        province: Joi.string().optional(),
+        postalCode: Joi.string().optional()
+      }).optional(),
+      permanent: Joi.object({
+        houseNumber: Joi.string().optional(),
+        street: Joi.string().allow('').optional(),
+        subDistrict: Joi.string().optional(),
+        district: Joi.string().optional(),
+        province: Joi.string().optional(),
+        postalCode: Joi.string().optional()
+      }).optional()
+    }).optional()
   }).required(),
+  membershipInfo: Joi.object({
+    level: Joi.string().valid('Silver', 'Gold', 'Platinum', 'Diamond').default('Silver'),
+    joinDate: Joi.date().optional(),
+    expiryDate: Joi.date().optional()
+  }).optional(),
   medicalInfo: Joi.object({
     allergies: Joi.object({
       drugs: Joi.array().items(Joi.string()).default([]),
@@ -46,7 +70,8 @@ const patientSchema = Joi.object({
     dataProcessing: Joi.boolean().required(),
     marketing: Joi.boolean().default(false),
     thirdPartySharing: Joi.boolean().default(false)
-  }).required()
+  }).required(),
+  referredBy: Joi.string().optional()
 });
 
 // @route   GET /api/patients
