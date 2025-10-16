@@ -67,22 +67,37 @@ const Treatments: React.FC = () => {
     try {
       setLoading(true);
       const response = await api.get('/treatments');
+      console.log('Treatments API response:', response.data);
       
       if (response.data.success) {
-        const transformedTreatments = response.data.data.treatments.map((t: any) => ({
+        // Handle different response structures
+        const treatmentsData = response.data.data?.treatments || response.data.data || response.data.treatments || [];
+        
+        if (!Array.isArray(treatmentsData)) {
+          console.warn('Treatments data is not an array:', treatmentsData);
+          setTreatments([]);
+          showNotification('ไม่พบข้อมูลการรักษา', 'warning');
+          return;
+        }
+        
+        const transformedTreatments = treatmentsData.map((t: any) => ({
           id: t._id,
-          patientName: `${t.patient?.profile?.firstName || ''} ${t.patient?.profile?.lastName || ''}`.trim() || 'ไม่ระบุ',
-          patientHN: t.patient?.hn || '-',
-          service: t.treatmentType || '-',
-          date: t.treatmentDate ? new Date(t.treatmentDate).toISOString().split('T')[0] : '-',
-          time: t.treatmentDate ? new Date(t.treatmentDate).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-',
-          doctor: `${t.performedBy?.doctor?.profile?.firstName || ''} ${t.performedBy?.doctor?.profile?.lastName || ''}`.trim() || 'ไม่ระบุ',
+          patientName: `${t.patient?.profile?.firstName || t.patient?.firstName || ''} ${t.patient?.profile?.lastName || t.patient?.lastName || ''}`.trim() || 'ไม่ระบุ',
+          patientHN: t.patient?.hn || t.patientHN || '-',
+          service: t.treatmentType || t.service || t.name || '-',
+          date: t.treatmentDate || t.date ? new Date(t.treatmentDate || t.date).toISOString().split('T')[0] : '-',
+          time: t.treatmentDate || t.date ? new Date(t.treatmentDate || t.date).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-',
+          doctor: `${t.performedBy?.doctor?.profile?.firstName || t.doctor?.firstName || ''} ${t.performedBy?.doctor?.profile?.lastName || t.doctor?.lastName || ''}`.trim() || 'ไม่ระบุ',
           status: t.status || 'scheduled',
-          cost: t.charges?.total || 0,
+          cost: t.charges?.total || t.cost || t.price || 0,
           notes: t.notes || '',
         }));
         
         setTreatments(transformedTreatments);
+        console.log('Transformed treatments:', transformedTreatments.length);
+      } else {
+        setTreatments([]);
+        showNotification('ไม่สามารถโหลดข้อมูลได้', 'warning');
       }
     } catch (err: any) {
       console.error('Failed to fetch treatments:', err);

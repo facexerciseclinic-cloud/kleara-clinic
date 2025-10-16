@@ -110,26 +110,39 @@ const Staff: React.FC = () => {
     try {
       setLoading(true);
       const response = await api.get('/staff');
+      console.log('Staff API response:', response.data);
+      
+      // Handle different response structures
+      const staffData = response.data.data?.staff || response.data.data || response.data.staff || [];
+      
+      if (!Array.isArray(staffData)) {
+        console.warn('Staff data is not an array:', staffData);
+        setStaff([]);
+        showNotification('ไม่พบข้อมูลพนักงาน', 'warning');
+        return;
+      }
       
       // Transform backend data
-      const transformedStaff = response.data.data.map((s: any) => ({
+      const transformedStaff = staffData.map((s: any) => ({
         id: s._id,
-        employeeId: s.employeeId,
-        name: `${s.profile.firstName} ${s.profile.lastName}`,
-        role: s.role,
+        employeeId: s.employeeId || s.username || 'N/A',
+        name: `${s.profile?.firstName || s.firstName || ''} ${s.profile?.lastName || s.lastName || ''}`.trim() || s.username || 'Unknown',
+        role: s.role || 'staff',
         department: s.department || '-',
-        email: s.email,
-        phone: s.profile.phone,
+        email: s.email || '',
+        phone: s.profile?.phone || s.phone || '',
         status: s.isActive ? 'active' : 'inactive',
         permissions: s.permissions?.map((p: any) => p.module) || [],
         schedule: s.schedule?.workingDays || [],
-        lastSeen: s.updatedAt,
+        lastSeen: s.updatedAt || s.lastLogin || new Date().toISOString(),
       }));
       
       setStaff(transformedStaff);
+      console.log('Transformed staff:', transformedStaff.length);
     } catch (error: any) {
       console.error('Error fetching staff:', error);
       showNotification(error.response?.data?.message || 'ไม่สามารถโหลดข้อมูลพนักงานได้', 'error');
+      setStaff([]);
     } finally {
       setLoading(false);
     }
