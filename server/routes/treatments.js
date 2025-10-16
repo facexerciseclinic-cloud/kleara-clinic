@@ -108,10 +108,10 @@ router.get('/:id', auth, checkPermission('treatments', 'read'), async (req, res)
 router.post('/', auth, checkPermission('treatments', 'write'), async (req, res) => {
   try {
     // Validate required fields
-    if (!req.body.patient || !req.body.treatmentType) {
+    if (!req.body.patient) {
       return res.status(400).json({
         success: false,
-        message: 'Patient and treatment type are required'
+        message: 'Patient is required'
       });
     }
 
@@ -124,16 +124,87 @@ router.post('/', auth, checkPermission('treatments', 'write'), async (req, res) 
       });
     }
 
-    // Set default doctor if not provided
-    if (!req.body.performedBy?.doctor) {
-      req.body.performedBy = {
-        ...req.body.performedBy,
-        doctor: req.user._id
+    // Map treatmentType to enum or default to 'other'
+    const treatmentTypeMap = {
+      'consultation': 'consultation',
+      'botox': 'botox',
+      'filler': 'filler',
+      'laser': 'laser',
+      'facial': 'facial',
+      'body': 'body_treatment',
+      'body_treatment': 'body_treatment',
+      'surgery': 'surgery'
+    };
+    
+    // Try to map, default to 'other' if not found
+    const providedType = req.body.treatmentType?.toLowerCase() || '';
+    let mappedType = 'other';
+    
+    for (const [key, value] of Object.entries(treatmentTypeMap)) {
+      if (providedType.includes(key)) {
+        mappedType = value;
+        break;
+      }
+    }
+    
+    req.body.treatmentType = mappedType;
+
+    // Create procedure from service if provided
+    if (req.body.service && req.body.treatmentType) {
+      const serviceName = req.body.treatmentTypeName || req.body.treatmentType;
+      req.body.procedures = [{
+        procedureName: serviceName,
+        cost: req.body.charges?.total || 0
+      }];
+    }
+
+    // Set billing information
+    if (!req.body.billing && req.body.charges?.total) {
+      req.body.billing = {
+        totalCost: req.body.charges.total,
+        procedureFee: req.body.charges.total,
+        finalAmount: req.body.charges.total,
+        paymentStatus: 'pending'
+      };
+    } else if (!req.body.billing) {
+      req.body.billing = {
+        totalCost: 0,
+        finalAmount: 0,
+        paymentStatus: 'pending'
       };
     }
 
-    // Set created by
-    req.body.createdBy = req.user._id;
+    // Set default status
+    if (!req.body.status) {
+      req.body.status = 'in-progress';
+    } else if (req.body.status === 'scheduled') {
+      // Map 'scheduled' to 'in-progress'
+      req.body.status = 'in-progress';
+    }
+
+    // Set default doctor if not provided (skip for demo users)
+    if (!req.body.performedBy?.doctor) {
+      // Check if user ID is valid ObjectId (not demo user)
+      if (String(req.user._id).match(/^[0-9a-fA-F]{24}$/)) {
+        req.body.performedBy = {
+          ...req.body.performedBy,
+          doctor: req.user._id
+        };
+      } else {
+        // For demo users, don't set doctor
+        req.body.performedBy = {
+          ...req.body.performedBy
+        };
+      }
+    }
+
+    // Set created by (skip for demo users)
+    if (String(req.user._id).match(/^[0-9a-fA-F]{24}$/)) {
+      req.body.createdBy = req.user._id;
+    }
+
+    // Don't require treatmentId, let pre-save hook generate it
+    delete req.body.treatmentId;
 
     const treatment = new Treatment(req.body);
     await treatment.save();

@@ -161,16 +161,28 @@ const Treatments: React.FC = () => {
       setSaving(true);
       const treatmentData = {
         patient: selectedPatient._id,
-        treatmentType: selectedService.name,
+        treatmentType: selectedService.name, // Keep original name for backend to map
+        treatmentTypeName: selectedService.name, // Store full name
         service: selectedService._id,
         treatmentDate: new Date(`${treatmentDate}T${treatmentTime}`).toISOString(),
-        status: 'scheduled',
+        status: 'in-progress', // Use valid enum value
         notes: notes,
         charges: {
           total: selectedService.price || 0
-        }
+        },
+        billing: {
+          totalCost: selectedService.price || 0,
+          procedureFee: selectedService.price || 0,
+          finalAmount: selectedService.price || 0,
+          paymentStatus: 'pending'
+        },
+        procedures: [{
+          procedureName: selectedService.name,
+          cost: selectedService.price || 0
+        }]
       };
 
+      console.log('Sending treatment data:', treatmentData);
       const response = await api.post('/treatments', treatmentData);
       
       if (response.data.success) {
