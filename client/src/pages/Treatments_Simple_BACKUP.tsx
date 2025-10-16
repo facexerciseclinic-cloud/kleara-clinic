@@ -57,8 +57,8 @@ const Treatments: React.FC = () => {
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Fetch treatments from API
   useEffect(() => {
     fetchTreatments();
   }, []);
@@ -66,28 +66,37 @@ const Treatments: React.FC = () => {
   const fetchTreatments = async () => {
     try {
       setLoading(true);
+      setError(null);
       const response = await api.get('/treatments');
       
       if (response.data.success) {
+        // Transform backend data to match frontend interface
         const transformedTreatments = response.data.data.treatments.map((t: any) => ({
           id: t._id,
-          patientName: `${t.patient?.profile?.firstName || ''} ${t.patient?.profile?.lastName || ''}`.trim() || 'ไม่ระบุ',
-          patientHN: t.patient?.hn || '-',
-          service: t.treatmentType || '-',
-          date: t.treatmentDate ? new Date(t.treatmentDate).toISOString().split('T')[0] : '-',
-          time: t.treatmentDate ? new Date(t.treatmentDate).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }) : '-',
-          doctor: `${t.performedBy?.doctor?.profile?.firstName || ''} ${t.performedBy?.doctor?.profile?.lastName || ''}`.trim() || 'ไม่ระบุ',
+          patientName: t.patient?.profile 
+            ? `${t.patient.profile.firstName} ${t.patient.profile.lastName}`
+            : 'ไม่ระบุ',
+          patientHN: t.patient?.hn || 'N/A',
+          service: t.treatmentType || 'ไม่ระบุบริการ',
+          date: t.treatmentDate?.split('T')[0] || new Date().toISOString().split('T')[0],
+          time: new Date(t.treatmentDate).toLocaleTimeString('th-TH', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          doctor: t.performedBy?.doctor?.profile 
+            ? `${t.performedBy.doctor.profile.firstName} ${t.performedBy.doctor.profile.lastName}`
+            : 'ไม่ระบุแพทย์',
           status: t.status || 'scheduled',
-          cost: t.charges?.total || 0,
-          notes: t.notes || '',
+          cost: t.billing?.totalAmount || 0,
+          notes: t.notes || ''
         }));
         
         setTreatments(transformedTreatments);
       }
     } catch (err: any) {
       console.error('Failed to fetch treatments:', err);
+      setError('ไม่สามารถโหลดข้อมูลการรักษาได้');
       showNotification('ไม่สามารถโหลดข้อมูลการรักษาได้', 'error');
-      setTreatments([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -184,7 +193,16 @@ const Treatments: React.FC = () => {
           {filteredTreatments.length === 0 ? (
             <EmptyState
               title="ไม่พบข้อมูลการรักษา"
-              message="ยังไม่มีข้อมูลการรักษาในระบบ หรือลองค้นหาด้วยคำค้นอื่น"
+              message="ยังไม่มีข้อมูลการรักษาในระบบ หรือลองค้นหาด้วยคำอื่น"
+              action={
+                <Button
+                  variant="contained"
+                  startIcon={<Add />}
+                  onClick={() => setActiveTab(1)}
+                >
+                  เพิ่มการรักษาใหม่
+                </Button>
+              }
             />
           ) : (
             <Card>
@@ -204,59 +222,59 @@ const Treatments: React.FC = () => {
                   </TableHead>
                   <TableBody>
                     {filteredTreatments.map((treatment) => (
-                    <TableRow key={treatment.id}>
-                      <TableCell>
-                        <Box display="flex" alignItems="center">
-                          <Avatar sx={{ mr: 1, bgcolor: 'primary.main' }}>
-                            <Person />
-                          </Avatar>
-                          <Box>
-                            <Typography variant="body2" fontWeight="bold">
-                              {treatment.patientName}
-                            </Typography>
-                            <Typography variant="caption" color="text.secondary">
-                              {treatment.patientHN}
-                            </Typography>
+                      <TableRow key={treatment.id}>
+                        <TableCell>
+                          <Box display="flex" alignItems="center">
+                            <Avatar sx={{ mr: 1, bgcolor: 'primary.main' }}>
+                              <Person />
+                            </Avatar>
+                            <Box>
+                              <Typography variant="body2" fontWeight="bold">
+                                {treatment.patientName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {treatment.patientHN}
+                              </Typography>
+                            </Box>
                           </Box>
-                        </Box>
-                      </TableCell>
-                      <TableCell>{treatment.service}</TableCell>
-                      <TableCell>
-                        <Box display="flex" alignItems="center">
-                          <CalendarToday sx={{ mr: 1, fontSize: 16 }} />
-                          {new Date(treatment.date).toLocaleDateString('th-TH')}
-                        </Box>
-                      </TableCell>
-                      <TableCell>{treatment.time}</TableCell>
-                      <TableCell>{treatment.doctor}</TableCell>
-                      <TableCell>
-                        <Chip
-                          label={getStatusText(treatment.status)}
-                          color={getStatusColor(treatment.status) as any}
-                          size="small"
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2" fontWeight="bold">
-                          ฿{treatment.cost.toLocaleString()}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Stack direction="row" spacing={1}>
-                          <IconButton size="small" color="primary">
-                            <Visibility />
-                          </IconButton>
-                          <IconButton size="small" color="secondary">
-                            <Edit />
-                          </IconButton>
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Card>
+                        </TableCell>
+                        <TableCell>{treatment.service}</TableCell>
+                        <TableCell>
+                          <Box display="flex" alignItems="center">
+                            <CalendarToday sx={{ mr: 1, fontSize: 16 }} />
+                            {new Date(treatment.date).toLocaleDateString('th-TH')}
+                          </Box>
+                        </TableCell>
+                        <TableCell>{treatment.time}</TableCell>
+                        <TableCell>{treatment.doctor}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={getStatusText(treatment.status)}
+                            color={getStatusColor(treatment.status) as any}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" fontWeight="bold">
+                            ฿{treatment.cost.toLocaleString()}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Stack direction="row" spacing={1}>
+                            <IconButton size="small" color="primary">
+                              <Visibility />
+                            </IconButton>
+                            <IconButton size="small" color="secondary">
+                              <Edit />
+                            </IconButton>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Card>
           )}
         </Box>
       )}
