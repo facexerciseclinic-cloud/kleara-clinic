@@ -52,91 +52,7 @@ import {
 } from '@mui/icons-material';
 import { useNotifications } from '../contexts/NotificationContext';
 import { api } from '../services/api';
-import { LoadingState } from '../components/common/States';
-
-// Sample staff data
-const sampleStaff = [
-  {
-    id: 1,
-    employeeId: 'EMP001',
-    name: 'นพ.สมชาย ใจดี',
-    role: 'doctor',
-    department: 'Dermatology',
-    email: 'somchai@kleara-clinic.com',
-    phone: '081-234-5678',
-    status: 'active',
-    joinDate: '2023-01-15',
-    schedule: 'Monday-Friday 9:00-17:00',
-    permissions: ['patient_read', 'patient_write', 'treatment_write'],
-    avatar: '',
-    isOnline: true,
-    lastSeen: '2024-10-08 14:30',
-  },
-  {
-    id: 2,
-    employeeId: 'EMP002',
-    name: 'นพ.มาลี สวยงาม',
-    role: 'doctor',
-    department: 'Aesthetic Medicine',
-    email: 'malee@kleara-clinic.com',
-    phone: '082-345-6789',
-    status: 'active',
-    joinDate: '2023-03-20',
-    schedule: 'Tuesday-Saturday 10:00-18:00',
-    permissions: ['patient_read', 'patient_write', 'treatment_write'],
-    avatar: '',
-    isOnline: false,
-    lastSeen: '2024-10-08 12:00',
-  },
-  {
-    id: 3,
-    employeeId: 'EMP003',
-    name: 'พยาบาลสมใส ดูแลดี',
-    role: 'nurse',
-    department: 'Treatment Room',
-    email: 'somsai@kleara-clinic.com',
-    phone: '083-456-7890',
-    status: 'active',
-    joinDate: '2023-05-10',
-    schedule: 'Monday-Friday 8:00-16:00',
-    permissions: ['patient_read', 'treatment_assist'],
-    avatar: '',
-    isOnline: true,
-    lastSeen: '2024-10-08 14:25',
-  },
-  {
-    id: 4,
-    employeeId: 'EMP004',
-    name: 'ใจดี ต้อนรับ',
-    role: 'receptionist',
-    department: 'Front Office',
-    email: 'jaidee@kleara-clinic.com',
-    phone: '084-567-8901',
-    status: 'active',
-    joinDate: '2023-02-01',
-    schedule: 'Monday-Sunday 9:00-19:00',
-    permissions: ['patient_read', 'appointment_write', 'billing_read'],
-    avatar: '',
-    isOnline: true,
-    lastSeen: '2024-10-08 14:35',
-  },
-  {
-    id: 5,
-    employeeId: 'EMP005',
-    name: 'ผู้จัดการใหญ่',
-    role: 'manager',
-    department: 'Administration',
-    email: 'manager@kleara-clinic.com',
-    phone: '085-678-9012',
-    status: 'active',
-    joinDate: '2022-12-01',
-    schedule: 'Monday-Friday 8:00-18:00',
-    permissions: ['*'],
-    avatar: '',
-    isOnline: false,
-    lastSeen: '2024-10-08 13:00',
-  },
-];
+import { LoadingState, EmptyState } from '../components/common/States';
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -542,21 +458,40 @@ const Staff: React.FC = () => {
           <Typography variant="h6" sx={{ mb: 2 }}>
             📋 รายชื่อเจ้าหน้าที่
           </Typography>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>พนักงาน</TableCell>
-                  <TableCell>รหัสพนักงาน</TableCell>
-                  <TableCell>ตำแหน่ง</TableCell>
-                  <TableCell>แผนก</TableCell>
-                  <TableCell>ติดต่อ</TableCell>
-                  <TableCell>สถานะ</TableCell>
-                  <TableCell>ออนไลน์</TableCell>
-                  <TableCell>การดำเนินการ</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
+          {filteredStaff.length === 0 ? (
+            <EmptyState
+              title="ไม่พบข้อมูลพนักงาน"
+              message={searchTerm || roleFilter !== 'all' || statusFilter !== 'all' 
+                ? "ไม่พบข้อมูลพนักงานที่ตรงกับการค้นหา ลองเปลี่ยนเงื่อนไขการค้นหา" 
+                : "ยังไม่มีข้อมูลพนักงานในระบบ เริ่มต้นเพิ่มพนักงานใหม่"}
+              action={
+                (searchTerm || roleFilter !== 'all' || statusFilter !== 'all') ? undefined : (
+                  <Button
+                    variant="contained"
+                    startIcon={<PersonAdd />}
+                    onClick={openAddDialog}
+                  >
+                    เพิ่มพนักงาน
+                  </Button>
+                )
+              }
+            />
+          ) : (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>พนักงาน</TableCell>
+                    <TableCell>รหัสพนักงาน</TableCell>
+                    <TableCell>ตำแหน่ง</TableCell>
+                    <TableCell>แผนก</TableCell>
+                    <TableCell>ติดต่อ</TableCell>
+                    <TableCell>สถานะ</TableCell>
+                    <TableCell>ออนไลน์</TableCell>
+                    <TableCell>การดำเนินการ</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
                 {filteredStaff.map((staff) => (
                   <TableRow key={staff.id}>
                     <TableCell>
@@ -653,6 +588,7 @@ const Staff: React.FC = () => {
               </TableBody>
             </Table>
           </TableContainer>
+          )}
         </CardContent>
       </Card>
 
