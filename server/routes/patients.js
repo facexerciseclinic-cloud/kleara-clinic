@@ -234,9 +234,13 @@ router.post('/', auth, checkPermission('patients', 'write'), async (req, res) =>
     req.body.pdpaConsent.consentDate = new Date();
     req.body.pdpaConsent.ipAddress = req.ip;
 
-    // Set registration info (use actual user ID from auth token)
+    // Set registration info (only if user ID is a valid ObjectId)
     if (req.user && req.user._id) {
-      req.body.registeredBy = req.user._id;
+      // Check if it's a valid ObjectId (24 hex characters)
+      if (String(req.user._id).match(/^[0-9a-fA-F]{24}$/)) {
+        req.body.registeredBy = req.user._id;
+      }
+      // For demo users (like 'admin-id'), don't set registeredBy
     }
 
     const patient = new Patient(req.body);
