@@ -47,11 +47,36 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 // Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Database connection - simple approach
+// Database connection - with better error handling and timeout
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/kleara_clinic';
-mongoose.connect(MONGODB_URI)
-  .then(() => console.log('📊 MongoDB Connected'))
-  .catch(err => console.error('❌ MongoDB Error:', err.message));
+
+// Log connection attempt
+console.log('🔄 Attempting MongoDB connection...');
+
+mongoose.connect(MONGODB_URI, {
+  serverSelectionTimeoutMS: 5000, // Timeout after 5 seconds
+  socketTimeoutMS: 45000,
+})
+  .then(() => {
+    console.log('✅ MongoDB Connected successfully');
+    console.log('📊 Database ready');
+  })
+  .catch(err => {
+    console.error('❌ MongoDB Connection Error:', err.message);
+    // Don't exit process on Render, just log the error
+    if (process.env.NODE_ENV !== 'production') {
+      console.error('Full error:', err);
+    }
+  });
+
+// Handle MongoDB connection events
+mongoose.connection.on('error', (err) => {
+  console.error('❌ MongoDB runtime error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.warn('⚠️  MongoDB disconnected');
+});
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
@@ -77,13 +102,34 @@ app.use('/api/settings', require('./routes/settings'));
 app.use('/api/portal', require('./routes/portal'));
 app.use('/api/referral', require('./routes/referral'));
 
-// Health check endpoint
+// Health check endpoint - with more detailed info
 app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'OK', 
-    message: 'Kleara Clinic Management System is running',
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+  
+  res.status(200).json({ 
+    status: 'ok',
+    service: 'Kleara Clinic API',
+    database: dbStatus,
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    version: '1.0.0'
+  });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Kleara Clinic Management API',
+    status: 'running',
+    endpoints: {
+      health: '/api/health',
+      auth: '/api/auth',
+      patients: '/api/patients',
+      appointments: '/api/appointments',
+      portal: '/api/portal',
+      loyalty: '/api/loyalty',
+      referral: '/api/referral'
+    }
   });
 });
 
@@ -127,10 +173,23 @@ const PORT = process.env.PORT || 5002;
 
 // Start server only when this file is run directly (not when required by tests)
 if (require.main === module) {
-  app.listen(PORT, () => {
+  const server = app.listen(PORT, '0.0.0.0', () => {
     console.log(`🏥 Kleara Clinic Management Server running on port ${PORT}`);
     console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`📱 API Base URL: http://localhost:${PORT}/api`);
+    console.log(`📱 Health Check: http://localhost:${PORT}/api/health`);
+    console.log(`✅ Server is ready to accept connections`);
+  });
+
+  // Handle graceful shutdown
+  process.on('SIGTERM', () => {
+    console.log('⚠️  SIGTERM signal received: closing HTTP server');
+    server.close(() => {
+      console.log('✅ HTTP server closed');
+      mongoose.connection.close(false, () => {
+        console.log('✅ MongoDB connection closed');
+        process.exit(0);
+      });
+    });
   });
 }
 
