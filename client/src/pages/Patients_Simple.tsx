@@ -159,7 +159,8 @@ const Patients: React.FC = () => {
       console.log('Patients API response:', response.data); // Debug log
       
       if (response.data.success) {
-        const patientsData = response.data.data || response.data.patients || [];
+        // Backend returns: { success: true, data: { patients: [...], pagination: {...} } }
+        const patientsData = response.data.data?.patients || response.data.data || [];
         
         if (Array.isArray(patientsData)) {
           const transformedPatients = patientsData.map((p: any) => ({
@@ -169,17 +170,18 @@ const Patients: React.FC = () => {
             nickname: p.profile.nickname,
             age: calculateAge(p.profile.dateOfBirth),
             gender: p.profile.gender === 'male' ? 'ชาย' : 'หญิง',
-            phone: p.contact.phone,
-            email: p.contact.email,
-            address: p.contact.address?.current?.street || '',
+            phone: p.profile.contact?.phone || p.contact?.phone || '',
+            email: p.profile.contact?.email || p.contact?.email || '',
+            address: p.profile.address?.current?.street || p.contact?.address?.current?.street || '',
             birthDate: p.profile.dateOfBirth,
-            occupation: p.profile.occupation,
-            membership: p.membershipInfo.level,
+            occupation: p.profile.occupation || '',
+            membership: p.membershipInfo?.level || 'Silver',
             lastVisit: p.lastVisit ? new Date(p.lastVisit).toLocaleDateString() : 'N/A',
-            totalSpending: p.financials.totalSpending,
+            totalSpending: p.financials?.totalSpending || 0,
             loyaltyPoints: p.loyaltyPoints || 0,
           }));
           setPatients(transformedPatients);
+          console.log('Transformed patients:', transformedPatients.length);
         } else {
           console.warn('Patients data is not an array:', patientsData);
           setPatients([]);
